@@ -1,0 +1,392 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Create Post</title>
+    <style>
+      :root{--bg:#fafafa;--card:#fff;--muted:#6b6b6b;--accent:#2563eb;--accent-2:#10b981;--danger:#ef4444}
+      *{box-sizing:border-box}
+      body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:#111;margin:0;padding:18px}
+      .wrap{max-width:1100px;margin:12px auto;background:transparent}
+      header h1{font-size:20px;margin:0 0 12px}
+      .layout{display:flex;gap:18px}
+      aside{width:260px;background:var(--card);border:1px solid #e6e6e6;border-radius:8px;padding:12px}
+      main{flex:1;background:var(--card);border:1px solid #e6e6e6;border-radius:8px;padding:16px}
+      .preset-btn{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:6px;border:1px solid transparent;background:transparent;margin-bottom:8px;cursor:pointer}
+      .preset-btn:hover{background:#f3f4f6}
+      .muted{color:var(--muted);font-size:13px}
+      label{display:block;margin-top:10px;font-size:14px}
+      textarea,input[type=text]{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;font-size:14px}
+  .buttons-list div{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+  .buttons-list input{flex:1;min-width:0}
+      .controls{display:flex;gap:8px;margin-top:10px}
+      button{cursor:pointer;border:0;padding:8px 12px;border-radius:8px;background:var(--accent);color:#fff}
+      button.ghost{background:transparent;color:var(--accent);border:1px solid #e6e6e6}
+      button.small{width:36px;height:36px;border-radius:8px;padding:0}
+      button.remove{background:var(--danger)}
+      .row{display:flex;gap:12px}
+  .thumb{max-width:140px;border-radius:6px;object-fit:cover}
+  /* make out area subtle (remove black footer look) */
+  pre#out{background:transparent;color:var(--muted);padding:8px;border-radius:6px;border:1px solid #e6e6e6;overflow:auto}
+
+      /* responsive */
+      @media (max-width:800px){
+        .layout{flex-direction:column}
+        aside{width:100%}
+        .row{flex-direction:column}
+        .thumb{max-width:100%}
+        /* presets horizontal on mobile */
+        #presetList{display:flex;flex-direction:row;gap:8px;justify-content:center;overflow:auto;padding:6px 0}
+        .preset-btn{white-space:nowrap;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid #e6e6e6}
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Create post</h1>
+    <div class="wrap">
+      <header><h1>Create post</h1></header>
+      <div class="layout">
+        <aside>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <h3 style="margin:0">Presets</h3>
+            <button id="addPresetBtn" type="button" style="background:var(--accent-2);color:#fff;font-weight:600;padding:6px 12px;border-radius:8px;font-size:18px;border:0;">+</button>
+          </div>
+          <div id="presetList" aria-label="Elenco preset"></div>
+          <div style="margin-top:12px">
+            <button id="freePost" type="button" class="ghost">Crea post libero</button>
+          </div>
+    <!-- Overlay per creazione nuovo preset -->
+    <div id="newPresetOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:#fff;padding:28px 24px;border-radius:12px;max-width:400px;width:96vw;box-shadow:0 2px 24px #0002;position:relative;">
+        <h2 style="margin-top:0">Crea nuovo preset</h2>
+        <label style="margin-bottom:8px;display:block">Nome preset
+          <input type="text" id="newPresetTitle" style="width:100%;margin-top:4px;padding:8px;border-radius:6px;border:1px solid #ddd" />
+        </label>
+        <div id="newPresetButtonsList" style="margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="newPresetAddBtn" type="button" style="background:var(--accent-2);color:#fff;font-weight:600;padding:6px 12px;border-radius:8px;font-size:16px;border:0;">+</button>
+          <button id="newPresetRemoveBtn" type="button" style="background:var(--danger);color:#fff;font-weight:600;padding:6px 12px;border-radius:8px;font-size:16px;border:0;">-</button>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button id="newPresetCancelBtn" type="button" class="ghost">Annulla</button>
+          <button id="newPresetSaveBtn" type="button" style="background:var(--accent);color:#fff;font-weight:600;padding:8px 18px;border-radius:8px;font-size:16px;border:0;">Salva</button>
+        </div>
+      </div>
+    </div>
+      // ...existing code...
+        </aside>
+        <main>
+          <div id="channelsBox" style="margin-bottom:18px">
+            <h3>Seleziona canale</h3>
+            <div id="channelsList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+            <div id="selectedChannel" style="margin-top:8px;color:var(--accent);font-weight:600"></div>
+          </div>
+          <form id="form" enctype="multipart/form-data">
+      <label>Testo
+        <textarea name="text" id="text" rows="6" cols="80"></textarea>
+      </label>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3 style="margin:0">Pulsanti</h3>
+          <div>
+            <button id="editPresetBtn" type="button" title="Modifica preset" class="ghost" style="padding:6px 8px">✏️</button>
+          </div>
+        </div>
+        <div id="presetTitle" style="font-weight:600;margin:8px 0 6px;color:var(--muted)"></div>
+        <div id="buttons" class="buttons-list"></div>
+        <div class="controls" style="margin-top:8px">
+          <button id="addBtn" type="button" class="small" title="Aggiungi">+</button>
+          <button id="removeBtn" type="button" class="small remove" title="Rimuovi">-</button>
+        </div>
+      </div>
+
+      <label class="muted">Allega immagini e video (max 5)
+        <input type="file" name="media" id="media" accept="image/*,video/mp4,video/mpeg,video/quicktime,video/avi,video/webm" multiple />
+      </label>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="submit">Invia</button>
+        <button id="savePreset" type="button" style="display:none" class="ghost">Salva preset</button>
+      </div>
+    </form>
+    <pre id="out"></pre>
+
+    <script>
+      // --- CREAZIONE NUOVO PRESET ---
+      const addPresetBtn = document.getElementById('addPresetBtn');
+      const newPresetOverlay = document.getElementById('newPresetOverlay');
+      const newPresetTitle = document.getElementById('newPresetTitle');
+      const newPresetButtonsList = document.getElementById('newPresetButtonsList');
+      const newPresetAddBtn = document.getElementById('newPresetAddBtn');
+      const newPresetRemoveBtn = document.getElementById('newPresetRemoveBtn');
+      const newPresetCancelBtn = document.getElementById('newPresetCancelBtn');
+      const newPresetSaveBtn = document.getElementById('newPresetSaveBtn');
+
+      let newPresetButtons = [];
+
+      function renderNewPresetButtons(){
+        newPresetButtonsList.innerHTML = '';
+        newPresetButtons.forEach((b, i) => {
+          const row = document.createElement('div');
+          row.style.display = 'flex'; row.style.gap = '8px'; row.style.marginBottom = '6px';
+          row.innerHTML = `<input type="text" placeholder="Nome pulsante" value="${b.text||''}" style="flex:1;padding:6px;border-radius:6px;border:1px solid #ddd" /> <input type="text" placeholder="Link" value="${b.url||''}" style="flex:1;padding:6px;border-radius:6px;border:1px solid #ddd" />`;
+          // aggiorna valori oninput
+          row.children[0].oninput = e => { newPresetButtons[i].text = e.target.value; };
+          row.children[1].oninput = e => { newPresetButtons[i].url = e.target.value; };
+          newPresetButtonsList.appendChild(row);
+        });
+      }
+      function showNewPresetOverlay(){
+        newPresetTitle.value = '';
+        newPresetButtons = [{text:'',url:''}];
+        renderNewPresetButtons();
+        newPresetOverlay.style.display = 'flex';
+      }
+      function hideNewPresetOverlay(){
+        newPresetOverlay.style.display = 'none';
+      }
+      addPresetBtn.addEventListener('click', showNewPresetOverlay);
+      newPresetCancelBtn.addEventListener('click', hideNewPresetOverlay);
+      newPresetAddBtn.addEventListener('click', ()=>{
+        newPresetButtons.push({text:'',url:''});
+        renderNewPresetButtons();
+      });
+      newPresetRemoveBtn.addEventListener('click', ()=>{
+        if (newPresetButtons.length>1) { newPresetButtons.pop(); renderNewPresetButtons(); }
+      });
+      newPresetSaveBtn.addEventListener('click', async ()=>{
+        const title = newPresetTitle.value.trim();
+        if (!title) { alert('Inserisci il nome del preset'); return; }
+        const buttons = newPresetButtons.filter(b => b.text.trim());
+        if (!buttons.length) { alert('Aggiungi almeno un pulsante'); return; }
+        try {
+          const res = await fetch('/api/presets', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ title, buttons })
+          });
+          const j = await res.json();
+          if (j.ok) {
+            hideNewPresetOverlay();
+            await loadPresets();
+            updateUiState();
+          } else {
+            alert('Errore creazione preset: '+(j.error||'unknown'));
+          }
+        } catch(e){ alert('Errore creazione preset: '+(e.message||e)); }
+      });
+      const buttonsContainer = document.getElementById('buttons');
+      const out = document.getElementById('out');
+      const form = document.getElementById('form');
+      const token = new URLSearchParams(location.search).get('token');
+      let presets = [];
+      let activePreset = null; // null = free post
+      let editingPreset = false;
+      const addBtnEl = document.getElementById('addBtn');
+      const removeBtnEl = document.getElementById('removeBtn');
+      const editPresetBtn = document.getElementById('editPresetBtn');
+      const savePresetBtn = document.getElementById('savePreset');
+
+      function updateUiState(){
+        // free post: hide pencil, show add/remove
+        if (!activePreset) {
+          if (editPresetBtn) editPresetBtn.style.display = 'none';
+          if (addBtnEl) addBtnEl.style.display = 'inline-block';
+          if (removeBtnEl) removeBtnEl.style.display = 'inline-block';
+        } else {
+          // preset selected: show pencil; add/remove only when editing
+          if (editPresetBtn) editPresetBtn.style.display = 'inline-block';
+          if (editingPreset) {
+            if (addBtnEl) addBtnEl.style.display = 'inline-block';
+            if (removeBtnEl) removeBtnEl.style.display = 'inline-block';
+          } else {
+            if (addBtnEl) addBtnEl.style.display = 'none';
+            if (removeBtnEl) removeBtnEl.style.display = 'none';
+          }
+        }
+      }
+
+  function addButtonRow(text='', url=''){
+        const idx = buttonsContainer.children.length;
+        const row = document.createElement('div');
+        row.innerHTML = `Text: <input name="b_text_${idx}" value="${text}" /> URL: <input name="b_url_${idx}" value="${url}" />`;
+        buttonsContainer.appendChild(row);
+      }
+
+      function removeButtonRow(){
+        if (buttonsContainer.lastChild) buttonsContainer.removeChild(buttonsContainer.lastChild);
+      }
+
+  addBtnEl.addEventListener('click', ()=> addButtonRow());
+  removeBtnEl.addEventListener('click', ()=> removeButtonRow());
+
+      // inizializza con un pulsante vuoto
+      addButtonRow();
+
+      // load presets
+      async function loadPresets(){
+        const res = await fetch('/api/presets');
+        const j = await res.json();
+        presets = j.presets || [];
+        renderPresetList();
+      }
+
+      function renderPresetList(){
+        const list = document.getElementById('presetList');
+        list.innerHTML = '';
+        const free = document.createElement('div');
+        free.innerHTML = `<button data-id="free">Crea post libero</button>`;
+        //list.appendChild(free);
+          for(const p of presets){
+            const el = document.createElement('div');
+            el.style.display = 'flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.marginBottom='6px';
+            el.innerHTML = `<div><button data-id="${p.id}" style="margin-right:8px">${p.title}</button><small style="color:#666;margin-left:6px">(${p.id})</small></div>`;
+            const del = document.createElement('button'); del.textContent = 'Elimina'; del.className='ghost'; del.style.background='transparent'; del.style.border='1px solid #e6e6e6'; del.style.padding='6px 8px'; del.style.borderRadius='6px'; del.addEventListener('click', ()=> deletePreset(p.id));
+            el.appendChild(del);
+            list.appendChild(el);
+          }
+  // attach handlers only to preset buttons (they have data-id)
+  list.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', ()=> selectPreset(b.dataset.id)));
+      }
+
+      async function deletePreset(id){
+        if (!confirm('Eliminare definitivamente il preset?')) return;
+        try {
+    // include token as query fallback and as header
+    const url = '/api/presets/' + encodeURIComponent(id) + (token ? `?token=${encodeURIComponent(token)}` : '');
+    const res = await fetch(url, { method: 'DELETE', headers: { 'Content-Type':'application/json', 'x-admin-token': token || '' } });
+          if (!res.ok) { const t = await res.text(); throw new Error(t || 'Errore'); }
+          await loadPresets();
+          updateUiState();
+        } catch (e) { alert('Errore eliminazione: '+(e.message||e)); }
+      }
+
+      async function selectPreset(id){
+        if (id === 'free') {
+          activePreset = null; editingPreset = false; document.getElementById('presetTitle').textContent = '';
+          if (savePresetBtn) savePresetBtn.style.display = 'none';
+          buttonsContainer.innerHTML = ''; addButtonRow(); updateUiState(); return;
+        }
+        const res = await fetch(`/api/presets/${id}`);
+        const j = await res.json();
+        activePreset = j.preset;
+        editingPreset = false;
+        document.getElementById('presetTitle').textContent = activePreset.title || '';
+        if (savePresetBtn) savePresetBtn.style.display = 'none';
+        // populate buttons
+        buttonsContainer.innerHTML = '';
+        for(const b of activePreset.buttons || []) addButtonRow(b.text, b.url);
+        updateUiState();
+      }
+
+  document.getElementById('freePost').addEventListener('click', ()=> selectPreset('free'));
+
+      // edit preset
+      editPresetBtn.addEventListener('click', ()=>{
+        if (!activePreset) return alert('Seleziona prima un preset da modificare');
+        editingPreset = true;
+        if (savePresetBtn) savePresetBtn.style.display = 'inline-block';
+        // allow editing title
+        const titleEl = document.getElementById('presetTitle');
+        const cur = titleEl.textContent || '';
+        titleEl.innerHTML = `<input id="presetTitleInput" value="${cur}" />`;
+        updateUiState();
+      });
+
+      document.getElementById('savePreset').addEventListener('click', async ()=>{
+        if (!activePreset) return;
+        // collect title
+        const title = document.getElementById('presetTitleInput') ? document.getElementById('presetTitleInput').value : activePreset.title;
+        // collect buttons
+        const buttons = [];
+        for (let i=0;i<buttonsContainer.children.length;i++){
+          const t = form.querySelector(`[name=b_text_${i}]`);
+          const u = form.querySelector(`[name=b_url_${i}]`);
+          if (t && t.value) buttons.push({ text: t.value, url: u ? u.value : '' });
+        }
+        const updated = Object.assign({}, activePreset, { title, buttons });
+        const res = await fetch(`/api/presets/${activePreset.id}`, { method: 'PUT', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(updated) });
+        const j = await res.json();
+        if (j.ok) {
+          editingPreset = false;
+          document.getElementById('presetTitle').textContent = updated.title;
+          if (savePresetBtn) savePresetBtn.style.display = 'none';
+          await loadPresets();
+          updateUiState();
+        } else alert('Errore salvataggio');
+      });
+
+  // initial load
+  loadPresets().then(()=> updateUiState());
+
+      // --- CANALI ---
+      let channels = [];
+      let selectedChannelId = null;
+      async function loadChannels(){
+        try {
+          const res = await fetch('/api/channels' + (token?`?token=${token}`:''));
+          const j = await res.json();
+          channels = j.channels || [];
+          renderChannelsList();
+        } catch(e){ channels=[]; }
+      }
+      function renderChannelsList(){
+        const box = document.getElementById('channelsList');
+        box.innerHTML = '';
+        channels.forEach(c => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = c.name;
+          btn.className = 'ghost';
+          btn.style.border = '2px solid #e6e6e6';
+          btn.style.background = '#fff';
+          btn.style.padding = '8px 14px';
+          btn.style.borderRadius = '8px';
+          btn.onclick = () => selectChannel(c);
+          box.appendChild(btn);
+        });
+      }
+      function selectChannel(c){
+        selectedChannelId = c.id;
+        document.getElementById('selectedChannel').textContent = `Canale selezionato: ${c.name}`;
+      }
+      // --- FINE CANALI ---
+
+      // carica canali all'avvio
+      loadChannels();
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        if (!selectedChannelId) { out.textContent = 'Seleziona prima un canale!'; return; }
+        if (!confirm(`Vuoi inviare il post al canale selezionato?`)) return;
+        out.textContent = 'Invio...';
+        const formData = new FormData();
+        formData.append('text', document.getElementById('text').value);
+
+        // raccogli buttons
+        const buttons = [];
+        for (let i=0;i<buttonsContainer.children.length;i++){
+          const textInput = form.querySelector(`[name=b_text_${i}]`);
+          const urlInput = form.querySelector(`[name=b_url_${i}]`);
+          if (textInput && urlInput && textInput.value) buttons.push({ text: textInput.value, url: urlInput.value });
+        }
+        formData.append('buttons', JSON.stringify(buttons));
+
+        // immagini
+        const files = document.getElementById('media').files;
+        for (let i=0;i<files.length;i++) formData.append('media', files[i]);
+
+        // aggiungi channelId
+        formData.append('channelId', selectedChannelId);
+
+        try{
+          const res = await fetch('/api/post' + (token?`?token=${token}`:''), { method: 'POST', body: formData });
+          const j = await res.json();
+          out.textContent = JSON.stringify(j,null,2);
+        } catch(err){ out.textContent = 'Errore: '+err.message }
+      });
+    </script>
+  </body>
+</html>

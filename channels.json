@@ -1,0 +1,16 @@
+{
+  "channels": [
+    {
+      "id": "@linearityfx_ita",
+      "name": "Linearity FX ITA"
+    },
+    {
+      "id": "@linearityfx_en",
+      "name": "Linearity FX ENG"
+    },
+    {
+      "id": "@Linearityfx_main",
+      "name": "Linearity prova"
+    }
+  ]
+}

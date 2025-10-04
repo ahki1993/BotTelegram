@@ -1,0 +1,11 @@
+{
+  "description": "Avvia interazione con il bot",
+  "message": "prova testo benvenuto. ",
+  "buttons": [
+    {
+      "text": "prova",
+      "url": "www.google.it"
+    }
+  ],
+  "image": null
+}

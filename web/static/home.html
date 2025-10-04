@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Linearity BOT Control</title>
+    <style>
+      body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#fafafa;color:#111}
+      .wrap{max-width:900px;margin:28px auto;padding:18px}
+  header h1{margin:0 0 14px;font-size:20px;text-align:center}
+  header{display:block}
+      .menu{display:flex;gap:12px;justify-content:center;align-items:center;margin-top:28px}
+      .menu button{padding:14px 20px;border-radius:8px;border:0;background:#2563eb;color:#fff;font-weight:600;cursor:pointer}
+      .menu button.ghost{background:transparent;color:#2563eb;border:1px solid #e6e6e6}
+      .center{display:flex;flex-direction:column;align-items:center;gap:12px}
+      a.link{color:#2563eb;text-decoration:none}
+      @media(max-width:600px){.menu{flex-direction:column}}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header><h1>Linearity BOT Control</h1></header>
+      <div class="center">
+        <p>Benvenuto nella console di controllo.</p>
+        <div class="menu">
+          <button id="btnPost">POST</button>
+          <button id="btnCommands" class="ghost">COMANDI</button>
+          <button id="btnSettings" class="ghost">IMPOSTAZIONI</button>
+        </div>
+        <!-- link removed; use the POST button above -->
+      </div>
+    </div>
+  </div>
+  <!-- Settings modal -->
+  <div id="settingsModal" style="display:none;position:fixed;inset:0;z-index:1200;align-items:center;justify-content:center;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);"></div>
+    <div style="position:relative;max-width:760px;margin:24px auto;padding:18px;background:#fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.25);z-index:1300;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0;font-size:18px">Impostazioni BOT Telegram</h2>
+        <button id="closeSettings" style="border:0;background:#eee;padding:8px 10px;border-radius:6px;cursor:pointer">Chiudi</button>
+      </div>
+
+      <div style="border-top:1px solid #eee;border-bottom:1px solid #eee;padding:12px 0;margin:12px 0">
+        <h3 style="margin:6px 0 12px">Setting Canali</h3>
+        <p style="margin:0 0 8px;color:#444">Aggiungi e rimuovi i canali a cui il bot può inviare i post. Il campo "Link/ID" può essere un ID numerico (es. -100123...), un @username o un link t.me/username.</p>
+
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <input id="chName" placeholder="Nome canale (es. Canale Notizie)" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px" />
+          <input id="chLink" placeholder="Link / @username / ID (es. t.me/username o -1001234)" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px" />
+          <button id="addChannel" style="padding:8px 12px;border-radius:6px;border:0;background:#10b981;color:#fff;cursor:pointer">＋</button>
+        </div>
+
+        <div id="channelsList" style="margin-top:14px"></div>
+      </div>
+
+      <div style="text-align:right;margin-top:8px"><button id="closeSettings2" style="border:0;background:#2563eb;color:#fff;padding:8px 12px;border-radius:6px;cursor:pointer">Salva e chiudi</button></div>
+    </div>
+  </div>
+  <!-- link removed; use the POST button above -->
+      </div>
+    </div>
+
+    <script>
+  // Settings modal behavior
+  const btnSettings = document.getElementById('btnSettings');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeSettings = document.getElementById('closeSettings');
+  const closeSettings2 = document.getElementById('closeSettings2');
+  const channelsList = document.getElementById('channelsList');
+  const addChannelBtn = document.getElementById('addChannel');
+  const chName = document.getElementById('chName');
+  const chLink = document.getElementById('chLink');
+
+  function showSettings(){ settingsModal.style.display = 'flex'; loadChannels(); }
+  function hideSettings(){ settingsModal.style.display = 'none'; }
+
+  btnSettings.addEventListener('click', ()=> showSettings());
+  closeSettings.addEventListener('click', hideSettings);
+  closeSettings2.addEventListener('click', hideSettings);
+
+  async function loadChannels(){
+    channelsList.innerHTML = '<div style="color:#666">Caricamento...</div>';
+    try {
+      const res = await fetch('/api/channels' + (token?`?token=${token}`:''));
+      if (!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      const channels = Array.isArray(data.channels) ? data.channels : [];
+      if (!channels.length) { channelsList.innerHTML = '<div style="color:#666">Nessun canale aggiunto.</div>'; return; }
+      channelsList.innerHTML = '';
+      channels.forEach(ch => {
+        const row = document.createElement('div');
+        row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.alignItems='center'; row.style.padding='6px 0'; row.style.borderBottom='1px solid #f1f1f1';
+        const left = document.createElement('div'); left.innerHTML = `<strong>${escapeHtml(ch.name || '')}</strong><div style="font-size:12px;color:#666">${escapeHtml(String(ch.id))}</div>`;
+        const del = document.createElement('button'); del.textContent='－'; del.style.background='#ef4444'; del.style.color='#fff'; del.style.border='0'; del.style.padding='6px 10px'; del.style.borderRadius='6px'; del.style.cursor='pointer';
+        del.addEventListener('click', ()=> removeChannel(ch.id));
+        row.appendChild(left); row.appendChild(del); channelsList.appendChild(row);
+      });
+    } catch (e) { channelsList.innerHTML = '<div style="color:#900">Errore nel caricamento</div>'; console.error(e); }
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" }[c])); }
+
+  addChannelBtn.addEventListener('click', async ()=>{
+    const name = chName.value && chName.value.trim();
+    const link = chLink.value && chLink.value.trim();
+    if (!name || !link) { alert('Compila nome e link/ID'); return; }
+    try {
+      const body = { name, link };
+      const res = await fetch('/api/channels' + (token?`?token=${token}`:''), { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok) { const t = await res.text(); throw new Error(t || 'Errore'); }
+      chName.value=''; chLink.value=''; loadChannels();
+    } catch (e) { alert('Errore aggiunta: '+ (e.message||e)); }
+  });
+
+  async function removeChannel(id){
+    if (!confirm('Rimuovere questo canale?')) return;
+    try {
+      const res = await fetch('/api/channels' + (token?`?token=${token}`:''), { method: 'DELETE', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ id }) });
+      if (!res.ok) { const t = await res.text(); throw new Error(t || 'Errore'); }
+      loadChannels();
+    } catch (e) { alert('Errore rimozione: '+ (e.message||e)); }
+  }
+      const token = new URLSearchParams(location.search).get('token');
+      const createLink = document.getElementById('createLink');
+      if (createLink) createLink.href = '/createpost' + (token?`?token=${token}`:'');
+  document.getElementById('btnPost').addEventListener('click', ()=> location.href = '/createpost' + (token?`?token=${token}`:''));
+  document.getElementById('btnCommands').addEventListener('click', ()=> location.href = '/commands' + (token?`?token=${token}`:''));
+    </script>
+  </body>
+</html>

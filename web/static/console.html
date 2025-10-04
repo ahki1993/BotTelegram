@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bot Console</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#f5f7fa;color:#111;padding:24px}
+    .card{background:#fff;padding:20px;border-radius:8px;max-width:720px;margin:20px auto;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+    h1{margin:0 0 12px;font-size:20px}
+    .status{font-weight:600;margin-bottom:12px}
+    .controls button{padding:10px 14px;margin-right:8px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer}
+    .controls button.primary{background:#0366d6;color:#fff;border-color:#0366d6}
+    .log{background:#0b1220;color:#e6f1ff;padding:12px;border-radius:6px;margin-top:12px;max-height:240px;overflow:auto;font-family:monospace;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Console Bot</h1>
+    <div class="status">Stato: <span id="state">...</span></div>
+    <div class="controls">
+      <button id="start">Start</button>
+      <button id="stop">Stop</button>
+      <button id="restart" class="primary">Restart</button>
+    </div>
+    <div class="log" id="log">Log iniziale...</div>
+  </div>
+<script>
+const logEl = document.getElementById('log');
+function log(s){ logEl.textContent = (new Date()).toISOString() + ' - ' + s + '\n' + logEl.textContent }
+async function status(){
+  try{
+    const res = await fetch('/api/bot/status');
+    const j = await res.json();
+    document.getElementById('state').textContent = j.running ? 'running' : 'stopped';
+    log('status: ' + (j.running ? 'running' : 'stopped'));
+  }catch(e){ log('status error: '+e.message) }
+}
+async function action(path){
+  try{
+    log('calling ' + path);
+    const res = await fetch(path, { method: 'POST' });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || JSON.stringify(j));
+    log('ok: ' + j.action);
+    await status();
+  }catch(e){ log('err: '+e.message) }
+}
+document.getElementById('start').addEventListener('click', ()=> action('/api/bot/start'));
+document.getElementById('stop').addEventListener('click', ()=> action('/api/bot/stop'));
+document.getElementById('restart').addEventListener('click', ()=> action('/api/bot/restart'));
+// initial
+status();
+</script>
+</body>
+</html>

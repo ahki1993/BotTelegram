@@ -1,0 +1,362 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Comandi Bot - Linearity</title>
+    <style>
+      body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#fafafa;color:#111}
+      .wrap{max-width:900px;margin:28px auto;padding:18px}
+      header h1{margin:0 0 14px;font-size:20px;text-align:center}
+      .list{background:#fff;border-radius:8px;padding:12px;border:1px solid #eee}
+      .row{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #f3f3f3}
+      .row:last-child{border-bottom:0}
+  .row.clickable{cursor:pointer}
+  .row .left{flex:1}
+  .actions{display:flex;gap:8px}
+  .btn-small{padding:6px 8px;border-radius:6px;border:0;background:#2563eb;color:#fff;cursor:pointer;font-size:13px}
+  .btn-danger{background:#dc2626}
+  .details{overflow:hidden;max-height:0;transition:max-height 260ms ease;padding:0 6px}
+  .details.open{max-height:200px;padding:8px 6px}
+  .details .actions-row{display:flex;gap:8px;margin-top:6px}
+      .muted{color:#666;font-size:13px}
+      .top{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:12px}
+      button{padding:10px 12px;border-radius:6px;border:0;background:#2563eb;color:#fff;cursor:pointer}
+      button.ghost{background:transparent;color:#2563eb;border:1px solid #e6e6e6}
+      .center{text-align:center}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header><h1>Comandi del Bot</h1></header>
+      <div class="top">
+        <div class="muted">Elenco dei comandi registrati e visibilità</div>
+        <div>
+          <button id="btnHome" class="ghost">Torna alla home</button>
+        </div>
+      </div>
+      <div class="list" id="commandsList">
+        <div class="center muted">Caricamento...</div>
+      </div>
+    </div>
+
+    <script>
+      const token = new URLSearchParams(location.search).get('token');
+      document.getElementById('btnHome').addEventListener('click', ()=> location.href = '/home' + (token?`?token=${token}`:''));
+
+      async function load() {
+        const res = await fetch('/api/commands' + (token?`?token=${token}`:''));
+        if (!res.ok) return document.getElementById('commandsList').innerHTML = '<div class="center muted">Errore nel caricamento</div>';
+        const data = await res.json();
+        const el = document.getElementById('commandsList');
+        el.innerHTML = '';
+        // global
+        const gtitle = document.createElement('div'); gtitle.className='muted'; gtitle.style.padding='6px 4px'; gtitle.innerText='Comandi Globali (visibili a tutti)'; el.appendChild(gtitle);
+        if (!data.global || !data.global.length) {
+          const none = document.createElement('div'); none.className='row muted'; none.innerText='Nessun comando globale registrato'; el.appendChild(none);
+        } else {
+          for (const c of data.global) {
+              const r = document.createElement('div'); r.className='row clickable';
+              const left = document.createElement('div'); left.className='left'; left.innerHTML = `<strong>/${c.command}</strong><div class='muted'>${c.description||''}</div>`;
+              const right = document.createElement('div'); right.className='muted'; right.innerText='visibile a tutti';
+              r.appendChild(left); r.appendChild(right);
+              // details panel
+              const details = document.createElement('div'); details.className='details';
+              const modBtn = c.command === 'start' ? '<button class="btn-small btn-mod">Modifica comando</button>' : '<button class="btn-small btn-mod" style="display:none">Modifica comando</button>';
+              details.innerHTML = `<div class="muted">Azioni disponibili per /${c.command}:</div><div class="actions-row">${modBtn}<button class="btn-small btn-priv">Modifica privilegi</button><button class="btn-small btn-danger">Elimina comando</button></div>`;
+              // toggle on click
+              r.addEventListener('click', (e)=>{
+                // avoid toggling when clicking on buttons inside details
+                if (e.target.tagName === 'BUTTON') return;
+                const open = details.classList.toggle('open');
+                if (open) details.style.maxHeight = details.scrollHeight + 'px'; else details.style.maxHeight = '0px';
+              });
+              el.appendChild(r);
+              el.appendChild(details);
+            }
+  }
+  // admins
+        const at = document.createElement('div'); at.className='muted'; at.style.padding='10px 4px'; at.innerText='Comandi personalizzati per admin (se presenti)'; el.appendChild(at);
+        if (!data.admin || !data.admin.length) {
+          const none2 = document.createElement('div'); none2.className='row muted'; none2.innerText='Nessuna configurazione admin registrata'; el.appendChild(none2);
+        } else {
+          for (const a of data.admin) {
+            const header = document.createElement('div'); header.className='row'; header.innerHTML = `<div><strong>Admin: ${a.admin}</strong></div><div class='muted'>Personalizzato</div>`; el.appendChild(header);
+            if (!a.commands || !a.commands.length) {
+              const n = document.createElement('div'); n.className='row muted'; n.innerText='Nessun comando per questo admin'; el.appendChild(n);
+            } else {
+              for (const c of a.commands) {
+                const r = document.createElement('div'); r.className='row clickable';
+                const left = document.createElement('div'); left.className='left'; left.innerHTML = `<strong>/${c.command}</strong><div class='muted'>${c.description||''}</div>`;
+                const right = document.createElement('div'); right.className='muted'; right.innerText='visibile solo a questo admin';
+                r.appendChild(left); r.appendChild(right);
+                const details = document.createElement('div'); details.className='details';
+                const modBtnAdmin = c.command === 'start' ? '<button class="btn-small btn-mod">Modifica comando</button>' : '<button class="btn-small btn-mod" style="display:none">Modifica comando</button>';
+                details.innerHTML = `<div class="muted">Azioni disponibili per /${c.command} (admin ${a.admin}):</div><div class="actions-row">${modBtnAdmin}<button class="btn-small btn-priv">Modifica privilegi</button><button class="btn-small btn-danger">Elimina comando</button></div>`;
+                r.addEventListener('click', (e)=>{
+                  if (e.target.tagName === 'BUTTON') return;
+                  const open = details.classList.toggle('open');
+                  if (open) details.style.maxHeight = details.scrollHeight + 'px'; else details.style.maxHeight = '0px';
+                });
+                el.appendChild(r);
+                el.appendChild(details);
+              }
+            }
+          }
+        }
+  // attach per-button handlers
+  try { attachPrivButtons(); } catch (err) { /* ignore */ }
+  try { attachModButtons(); } catch (err) { /* ignore */ }
+      }
+
+      load().catch(e => { document.getElementById('commandsList').innerHTML = '<div class="center muted">Errore: '+(e.message||e)+'</div>' });
+      // create modal markup
+      const modal = document.createElement('div'); modal.id='privModal'; modal.style.position='fixed'; modal.style.left='0'; modal.style.top='0'; modal.style.right='0'; modal.style.bottom='0'; modal.style.background='rgba(0,0,0,0.4)'; modal.style.display='none'; modal.style.alignItems='center'; modal.style.justifyContent='center';
+      modal.innerHTML = `<div style="background:#fff;padding:18px;border-radius:8px;max-width:420px;width:90%;box-shadow:0 6px 24px rgba(0,0,0,0.2)"><h3>Modifica Privilegi</h3><div style="margin-top:8px"><label><input type=checkbox id=chkAdmin> Admin</label><div class='muted' style='font-size:12px'>Abilita per gli amministratori</div></div><div style="margin-top:8px"><label><input type=checkbox id=chkUser> Utenti Normali</label><div class='muted' style='font-size:12px'>Abilita per gli utenti normali</div></div><div style='margin-top:12px;display:flex;gap:8px;justify-content:flex-end'><button id='btnSavePriv' class='btn-small'>Salva</button><button id='btnClosePriv' class='btn-small btn-danger'>Chiudi</button></div></div>`;
+      document.body.appendChild(modal);
+
+      let currentCommand = null;
+
+      function attachPrivButtons() {
+        const buttons = Array.from(document.querySelectorAll('.btn-priv'));
+        console.log('[commands] attachPrivButtons found', buttons.length, 'buttons');
+        buttons.forEach(btn => {
+          if (btn._attached) return; btn._attached = true;
+          btn.addEventListener('click', async (ev) => {
+            console.log('[commands] btn-priv clicked');
+            ev.stopPropagation(); ev.preventDefault();
+            // prefer dataset command (if present)
+            const dataCmd = btn.dataset && btn.dataset.cmd ? btn.dataset.cmd : null;
+            let row = null;
+            if (!dataCmd) {
+              // try to find row ancestor
+              row = btn.closest('.row');
+              // if not found, the button is inside .details which is sibling of row
+              if (!row) {
+                const det = btn.closest('.details');
+                if (det && det.previousElementSibling && det.previousElementSibling.classList.contains('row')) row = det.previousElementSibling;
+              }
+            }
+            if (dataCmd) {
+              currentCommand = String(dataCmd).trim();
+            } else {
+              if (!row) { console.log('[commands] no row found'); return; }
+              const cmd = row.querySelector('strong');
+              if (!cmd) { console.log('[commands] no strong command node found'); return; }
+              currentCommand = cmd.innerText.replace('/', '').trim();
+            }
+            console.log('[commands] opening privileges modal for', currentCommand);
+            try {
+              const resp = await fetch('/api/commands' + (token?`?token=${token}`:''));
+              if (!resp.ok) throw new Error('failed');
+              const data = await resp.json();
+              const globalHas = Array.isArray(data.global) && data.global.some(c => c.command === currentCommand);
+              let adminHas = false;
+              if (Array.isArray(data.admin)) {
+                adminHas = data.admin.some(a => Array.isArray(a.commands) && a.commands.some(c => c.command === currentCommand));
+              }
+              document.getElementById('chkAdmin').checked = !!adminHas;
+              document.getElementById('chkUser').checked = !!globalHas;
+            } catch (err) {
+              console.log('[commands] error fetching commands for modal init', err);
+              document.getElementById('chkAdmin').checked = false;
+              document.getElementById('chkUser').checked = false;
+            }
+            // ensure modal above other elements
+            modal.style.zIndex = '9999';
+            modal.style.display = 'flex';
+            console.log('[commands] modal displayed');
+          });
+        });
+      }
+
+      document.getElementById('btnClosePriv').addEventListener('click', ()=>{ document.getElementById('privModal').style.display='none'; currentCommand = null; });
+      document.getElementById('btnSavePriv').addEventListener('click', async ()=>{
+        const allowAdmin = !!document.getElementById('chkAdmin').checked;
+        const allowUser = !!document.getElementById('chkUser').checked;
+        if (!currentCommand) return alert('Nessun comando selezionato');
+        const res = await fetch('/api/commands/privileges' + (token?`?token=${token}`:''), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ command: currentCommand, allowAdmin, allowUser }) });
+        if (!res.ok) return alert('Errore durante il salvataggio');
+        const data = await res.json().catch(()=>null);
+        if (data && data.errors && data.errors.length) {
+          console.error('[commands] errors from server', data.errors);
+          alert('Errore durante l\'applicazione delle modifiche: vedi console');
+          document.getElementById('privModal').style.display='none'; currentCommand = null; return;
+        }
+        alert('Privilegi aggiornati');
+        document.getElementById('privModal').style.display='none'; currentCommand = null;
+        if (data && (data.global || data.admin)) {
+          // re-render using returned data
+          renderCommandsFromData(data);
+        } else {
+          load();
+        }
+      });
+
+      function renderCommandsFromData(data) {
+        const el = document.getElementById('commandsList'); el.innerHTML='';
+        const gtitle = document.createElement('div'); gtitle.className='muted'; gtitle.style.padding='6px 4px'; gtitle.innerText='Comandi Globali (visibili a tutti)'; el.appendChild(gtitle);
+        if (!data.global || !data.global.length) {
+          const none = document.createElement('div'); none.className='row muted'; none.innerText='Nessun comando globale registrato'; el.appendChild(none);
+        } else {
+          for (const c of data.global) {
+            const r = document.createElement('div'); r.className='row clickable';
+            const left = document.createElement('div'); left.className='left'; left.innerHTML = `<strong>/${c.command}</strong><div class='muted'>${c.description||''}</div>`;
+            const right = document.createElement('div'); right.className='muted'; right.innerText='visibile a tutti';
+            r.appendChild(left); r.appendChild(right);
+            const details = document.createElement('div'); details.className='details';
+            const modBtn2 = c.command === 'start' ? '<button class="btn-small btn-mod">Modifica comando</button>' : '<button class="btn-small btn-mod" style="display:none">Modifica comando</button>';
+            details.innerHTML = `<div class="muted">Azioni disponibili per /${c.command}:</div><div class="actions-row">${modBtn2}<button class="btn-small btn-priv">Modifica privilegi</button><button class="btn-small btn-danger">Elimina comando</button></div>`;
+            r.addEventListener('click', (e)=>{ if (e.target.tagName === 'BUTTON') return; const open = details.classList.toggle('open'); if (open) details.style.maxHeight = details.scrollHeight + 'px'; else details.style.maxHeight = '0px'; });
+            el.appendChild(r); el.appendChild(details);
+          }
+        }
+        const at = document.createElement('div'); at.className='muted'; at.style.padding='10px 4px'; at.innerText='Comandi personalizzati per admin (se presenti)'; el.appendChild(at);
+        if (!data.admin || !data.admin.length) {
+          const none2 = document.createElement('div'); none2.className='row muted'; none2.innerText='Nessuna configurazione admin registrata'; el.appendChild(none2);
+        } else {
+          for (const a of data.admin) {
+            const header = document.createElement('div'); header.className='row'; header.innerHTML = `<div><strong>Admin: ${a.admin}</strong></div><div class='muted'>Personalizzato</div>`; el.appendChild(header);
+            if (!a.commands || !a.commands.length) {
+              const n = document.createElement('div'); n.className='row muted'; n.innerText='Nessun comando per questo admin'; el.appendChild(n);
+            } else {
+              for (const c of a.commands) {
+                const r = document.createElement('div'); r.className='row clickable';
+                const left = document.createElement('div'); left.className='left'; left.innerHTML = `<strong>/${c.command}</strong><div class='muted'>${c.description||''}</div>`;
+                const right = document.createElement('div'); right.className='muted'; right.innerText='visibile solo a questo admin';
+                r.appendChild(left); r.appendChild(right);
+                const details = document.createElement('div'); details.className='details';
+                const modBtnAdmin2 = c.command === 'start' ? '<button class="btn-small btn-mod">Modifica comando</button>' : '<button class="btn-small btn-mod" style="display:none">Modifica comando</button>';
+                details.innerHTML = `<div class="muted">Azioni disponibili per /${c.command} (admin ${a.admin}):</div><div class="actions-row">${modBtnAdmin2}<button class="btn-small btn-priv">Modifica privilegi</button><button class="btn-small btn-danger">Elimina comando</button></div>`;
+                r.addEventListener('click', (e)=>{ if (e.target.tagName === 'BUTTON') return; const open = details.classList.toggle('open'); if (open) details.style.maxHeight = details.scrollHeight + 'px'; else details.style.maxHeight = '0px'; });
+                el.appendChild(r); el.appendChild(details);
+              }
+            }
+          }
+        }
+          try { attachPrivButtons(); } catch(e){}
+          try { attachModButtons(); } catch(e){}
+      }
+
+        // --- Modifica comando: client handlers and modal for /start ---
+        function attachModButtons() {
+          const buttons = Array.from(document.querySelectorAll('.btn-mod'));
+          buttons.forEach(btn => {
+            if (btn._attachedMod) return; btn._attachedMod = true;
+            btn.addEventListener('click', async (ev) => {
+              ev.stopPropagation(); ev.preventDefault();
+              const det = btn.closest('.details');
+              let row = det && det.previousElementSibling && det.previousElementSibling.classList.contains('row') ? det.previousElementSibling : null;
+              if (!row) return alert('comando non modificabile');
+              const cmd = row.querySelector('strong');
+              const command = cmd ? cmd.innerText.replace('/', '').trim() : null;
+              if (!command) return alert('comando non modificabile');
+              if (command !== 'start') return alert('comando non modificabile');
+              openEditModal(command);
+            });
+          });
+        }
+
+        // create edit modal for /start
+        const editModal = document.createElement('div'); editModal.id='editModal'; editModal.style.position='fixed'; editModal.style.left='0'; editModal.style.top='0'; editModal.style.right='0'; editModal.style.bottom='0'; editModal.style.background='rgba(0,0,0,0.4)'; editModal.style.display='none'; editModal.style.alignItems='center'; editModal.style.justifyContent='center';
+        editModal.innerHTML = `<div style="background:#fff;padding:18px;border-radius:8px;max-width:720px;width:96%;box-shadow:0 6px 24px rgba(0,0,0,0.2)"><h3>Modifica /start</h3>
+          <div style="margin-top:8px"><label>Descrizione (visibile nel menu):<br><input id='startDesc' style='width:100%;padding:8px;border:1px solid #e6e6e6;border-radius:6px' /></label></div>
+          <div style="margin-top:8px"><label>Testo inviato con /start:<br><textarea id='startMsg' style='width:100%;height:120px;padding:8px;border:1px solid #e6e6e6;border-radius:6px'></textarea></label></div>
+          <div style="margin-top:8px"><label>Pulsanti (gestione visuale):<br>
+            <div id='startBtnsEditor' style='border:1px solid #e6e6e6;border-radius:6px;padding:8px;min-height:64px;background:#fff'></div>
+            <div style='margin-top:8px'><button id='btnAddStartBtn' class='btn-small'>Aggiungi pulsante</button></div>
+          </label></div>
+          <div style="margin-top:8px"><label>Immagine o video (opzionale):<br><input id='startImg' type='file' accept='image/*,video/mp4,video/mpeg,video/quicktime,video/avi,video/webm' /></label></div>
+          <div style='margin-top:12px;display:flex;gap:8px;justify-content:flex-end'><button id='btnSaveCmd' class='btn-small'>Salva</button><button id='btnCloseCmd' class='btn-small btn-danger'>Annulla</button></div></div>`;
+        document.body.appendChild(editModal);
+        document.getElementById('btnCloseCmd')?.addEventListener('click', ()=>{ editModal.style.display='none'; });
+
+        // Render buttons editor (list of existing buttons with inputs + remove)
+        function renderButtonsEditor(buttons) {
+          const container = document.getElementById('startBtnsEditor');
+          container.innerHTML = '';
+          if (!Array.isArray(buttons)) buttons = [];
+          buttons.forEach(b => addButtonToEditor(b));
+          // if none, show hint
+          if (buttons.length === 0) {
+            const hint = document.createElement('div'); hint.className='muted'; hint.style.fontSize='13px'; hint.innerText='Nessun pulsante. Usa "Aggiungi pulsante" per crearne uno.';
+            container.appendChild(hint);
+          }
+        }
+
+        function addButtonToEditor(btn) {
+          const container = document.getElementById('startBtnsEditor');
+          // remove hint if present
+          const hint = container.querySelector('.muted'); if (hint) hint.remove();
+          const row = document.createElement('div'); row.className='btn-row'; row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='8px';
+          const txt = document.createElement('input'); txt.type='text'; txt.placeholder='Testo pulsante'; txt.value = (btn && btn.text) ? btn.text : ''; txt.style.flex = '1'; txt.style.padding='6px'; txt.style.border='1px solid #e6e6e6'; txt.style.borderRadius='6px';
+          const url = document.createElement('input'); url.type='text'; url.placeholder='https://...'; url.value = (btn && btn.url) ? btn.url : ''; url.style.flex = '1.5'; url.style.padding='6px'; url.style.border='1px solid #e6e6e6'; url.style.borderRadius='6px';
+          const rem = document.createElement('button'); rem.className='btn-small btn-danger'; rem.innerText='Rimuovi'; rem.style.flex='0';
+          rem.addEventListener('click', ()=>{ row.remove(); const container = document.getElementById('startBtnsEditor'); if (container.children.length === 0) { renderButtonsEditor([]); } });
+          row.appendChild(txt); row.appendChild(url); row.appendChild(rem);
+          container.appendChild(row);
+        }
+
+        function gatherButtonsFromEditor() {
+          const container = document.getElementById('startBtnsEditor');
+          const rows = Array.from(container.querySelectorAll('.btn-row'));
+          const out = [];
+          for (const r of rows) {
+            const inputs = r.querySelectorAll('input');
+            if (!inputs || inputs.length < 2) continue;
+            const t = inputs[0].value.trim(); const u = inputs[1].value.trim();
+            if (!t) continue; if (!u) continue;
+            out.push({ text: t, url: u });
+          }
+          return out;
+        }
+
+        document.addEventListener('click', (e)=>{
+          if (e.target && e.target.id === 'btnAddStartBtn') { e.preventDefault(); addButtonToEditor({ text: '', url: '' }); }
+        });
+
+        async function openEditModal(command) {
+          try {
+            const resp = await fetch('/api/commands' + (token?`?token=${token}`:''));
+            const data = await resp.json();
+            let cur = '';
+            if (Array.isArray(data.global)) {
+              const f = data.global.find(c => c.command === command);
+              if (f) cur = f.description || '';
+            }
+            document.getElementById('startDesc').value = cur;
+            // load saved start config too
+            try {
+              const sc = await fetch('/api/commands/start-config' + (token?`?token=${token}`:''));
+              if (sc.ok) {
+                const sdata = await sc.json();
+                if (sdata && sdata.config) {
+                  document.getElementById('startMsg').value = sdata.config.message || '';
+                  renderButtonsEditor(sdata.config.buttons || []);
+                }
+              }
+            } catch(e){}
+          } catch (e) { document.getElementById('startDesc').value = ''; }
+          editModal.style.zIndex='9999'; editModal.style.display='flex';
+        }
+
+        document.getElementById('btnSaveCmd').addEventListener('click', async ()=>{
+          const desc = document.getElementById('startDesc').value || '';
+          const msg = document.getElementById('startMsg').value || '';
+          const btns = gatherButtonsFromEditor();
+          const fileInput = document.getElementById('startImg');
+          const form = new FormData();
+          form.append('description', desc);
+          form.append('message', msg);
+          form.append('buttons', JSON.stringify(btns));
+          if (fileInput && fileInput.files && fileInput.files.length) form.append('media', fileInput.files[0]);
+          const res = await fetch('/api/commands/start-config' + (token?`?token=${token}`:''), { method: 'POST', body: form });
+          if (!res.ok) return alert('Errore durante il salvataggio');
+          const data = await res.json().catch(()=>null);
+          if (data && data.errors && data.errors.length) { console.error('[commands] update errors', data.errors); return alert('Errore durante l\'aggiornamento: vedi console'); }
+          alert('Comando /start aggiornato'); editModal.style.display='none';
+          if (data && (data.global || data.admin)) renderCommandsFromData(data); else load();
+        });
+    </script>
+  </body>
+</html>

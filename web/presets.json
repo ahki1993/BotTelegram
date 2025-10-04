@@ -1,0 +1,50 @@
+{
+  "presets": [
+    {
+      "id": 1,
+      "title": "🇮🇹 ITA - POST PRESET 🇮🇹",
+      "buttons": [
+        {
+          "text": "✅Materiale Disponibile",
+          "url": "https://linktr.ee/linearityfx"
+        },
+        {
+          "text": "🤝Collabora con noi",
+          "url": "https://forms.gle/1Eoem8LxKyftYJj97"
+        },
+        {
+          "text": "💬Supporto",
+          "url": "http://t.me/linearity_support"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "🇬🇧 ENG - POST PRESET 🇬🇧",
+      "buttons": [
+        {
+          "text": "✅Available Resources",
+          "url": "https://linktr.ee/linearityfx_eng"
+        },
+        {
+          "text": "🤝Work with Us",
+          "url": "https://forms.gle/F5zxowR8gcs9gCof9"
+        },
+        {
+          "text": "💬Customer Support",
+          "url": "http://t.me/linearity_support"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "📲 CONTATTACI 📲",
+      "buttons": [
+        {
+          "text": "📲Contattaci",
+          "url": "Https://t.me/linearity_support"
+        }
+      ]
+    }
+  ]
+}
